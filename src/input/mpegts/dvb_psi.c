@@ -129,11 +129,13 @@ extract_pid(const uint8_t *ptr)
 
 
 static inline uint16_t
-extract_svcid(const uint8_t *ptr)
+extract_svcid(const uint8_t *ptr, mpegts_table_t *mt) //Khi
 {
-  return (ptr[0] << 8) | ptr[1];
-}
+  mpegts_mux_t *mm = mt->mt_mux;
+  dvb_mux_t *lm = (dvb_mux_t *)mm; // Khi
 
+  return (ptr[1] | (lm->lm_tuning.dmc_fe_freq / 1000000) << 8);
+}
 
 static inline int
 mpegts_mux_alive(mpegts_mux_t *mm)
@@ -578,7 +580,7 @@ dvb_desc_service_list
   int i;
 
   for (i = 0; i < len; i += 3) {
-    sid   = extract_svcid(ptr + i);
+    sid   = extract_svcid(ptr + i, mt); //khi
     stype = ptr[i+2];
     tvhdebug(mt->mt_subsys, "%s:    service %04X (%d) type %02X (%d)", mt->mt_name, sid, sid, stype, stype);
     if (mm) {
@@ -606,7 +608,7 @@ dvb_desc_local_channel
     return 0;
 
   while(len >= 4) {
-    sid = extract_svcid(ptr);
+    sid = extract_svcid(ptr, mt); //khi
     lcn = extract_2byte(ptr + 2) & 0x3ff;
     tvhdebug(mt->mt_subsys, "%s:    sid %d lcn %d", mt->mt_name, sid, lcn);
     if (sid && lcn && mm) {
@@ -647,7 +649,7 @@ dvb_freesat_local_channels
   int len2;
 
   while (len > 4) {
-    sid = extract_svcid(ptr);
+    sid = extract_svcid(ptr, mt); //khi
     unk = extract_2byte(ptr + 2);
     len2 = ptr[4];
     ptr += 5;
@@ -914,7 +916,7 @@ dvb_bskyb_local_channels
            mt->mt_name, regionid, regionid, ptr[0], ptr[0]);
 
   while (len > 8) {
-    sid = extract_svcid(ptr);
+    sid = extract_svcid(ptr, mt); //khi
     lcn = extract_2byte(ptr + 5);
     stype = ptr[2];
     unk = extract_2byte(ptr + 3);
@@ -1002,7 +1004,7 @@ dvb_pat_callback
   ptr += 5;
   len -= 5;
   while(len >= 4) {
-    sid = extract_svcid(ptr);
+    sid = extract_svcid(ptr, mt); //khi
     pid = extract_pid(ptr + 2);
 
     /* NIT PID */
@@ -1635,7 +1637,7 @@ dvb_sdt_mux
   while(len >= 5) {
     mpegts_service_t *s;
     int master = 0, save = 0, save2 = 0;
-    uint16_t service_id                = extract_svcid(ptr);
+    uint16_t service_id                = extract_svcid(ptr, mt);  //khi
     int      free_ca_mode              = (ptr[3] >> 4) & 0x1;
     int      stype = 0;
     char     sprov[256], sname[256], sauth[256];
@@ -1871,7 +1873,7 @@ atsc_vct_callback
     maj  = (ptr[14] & 0xF) << 6 | ptr[15] >> 2;
     min  = (ptr[15] & 0x3) << 2 | ptr[16];
     tsid = extract_tsid(ptr + 22);
-    sid  = extract_svcid(ptr + 24);
+    sid  = extract_svcid(ptr + 24, mt); //khi
     type = ptr[27] & 0x3f;
     srcid  = (ptr[28]) << 8 | ptr[29];
     tvhdebug(mt->mt_subsys, "%s: tsid   %04X (%d)", mt->mt_name, tsid, tsid);
@@ -2012,7 +2014,7 @@ dvb_fs_sdt_mux
 
     onid = extract_onid(ptr);
     tsid = extract_tsid(ptr + 2);
-    service_id = extract_svcid(ptr + 4);
+    service_id = extract_svcid(ptr + 4, mt);  //khi
     /* (ptr[6] << 8) | ptr[7]   - video pid */
     /* (ptr[7] << 8) | ptr[8]   - audio pid */
     /* (ptr[9] << 8) | ptr[10]  - video ecm pid */

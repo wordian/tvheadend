@@ -42,9 +42,12 @@ extract_pid(const uint8_t *ptr)
 }
 
 static inline uint16_t
-extract_svcid(const uint8_t *ptr)
+extract_svcid(const uint8_t *ptr, mpegts_table_t *mt) //Khi
 {
-  return (ptr[0] << 8) | ptr[1];
+  mpegts_mux_t *mm = mt->mt_mux;
+  dvb_mux_t *lm = (dvb_mux_t *)mm; // Khi
+
+  return (ptr[1] | (lm->lm_tuning.dmc_fe_freq / 1000000) << 8);
 }
 
 /**
@@ -570,7 +573,7 @@ dvb_pmt_callback
 
   /* Start */
   if (len < 2) return -1;
-  sid = extract_svcid(ptr);
+  sid = extract_svcid(ptr, mt); //khi
   r   = dvb_table_begin((mpegts_psi_table_t *)mt, ptr, len,
                         tableid, sid, 9, &st, &sect, &last, &ver, 0);
   if (r != 1) return r;
